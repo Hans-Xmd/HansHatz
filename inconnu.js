@@ -44,12 +44,10 @@ const prefix = config.PREFIX;
 const mode = config.MODE || config.WORK_TYPE;
 const router = express.Router();
 
-
 connectdb();
 
 const activeSockets = new Map();
 const socketCreationTime = new Map();
-
 
 function createInconnuboyStore() {
     const store = {
@@ -73,7 +71,6 @@ function createInconnuboyStore() {
     return store;
 }
 
-// Utility functions
 const createSerial = (size) => crypto.randomBytes(size).toString('hex').slice(0, size);
 
 const getGroupAdmins = (participants) => {
@@ -114,7 +111,6 @@ for (const file of pluginFiles) {
     try { require(path.join(pluginsDir, file)); }
     catch (e) { inconnuboyLog(`Failed to load plugin ${file}: ${e.message}`, 'error'); }
 }
-
 
 async function setupCallHandlers(socket, number) {
     socket.ev.on('call', async (calls) => {
@@ -168,9 +164,18 @@ function setupAutoRestart(socket, number) {
                 socketCreationTime.delete(sanitizedNumber);
                 socket.ev.removeAllListeners();
                 await delay(10000);
+
+                // FIXED: Only auto-reconnect if session exists — never request a new pairing code automatically
+                const existingSession = await getSessionFromMongoDB(sanitizedNumber);
+                if (!existingSession) {
+                    inconnuboyLog(`No session found for ${sanitizedNumber} during reconnect — skipping (user must re-pair manually)`, 'warning');
+                    await removeNumberFromMongoDB(sanitizedNumber);
+                    return;
+                }
+
                 try {
                     const mockRes = { headersSent: false, send: () => {}, status: () => mockRes, setHeader: () => {}, json: () => {} };
-                    await inconnuboyPair(number, mockRes);
+                    await inconnuboyPair(number, mockRes, true);
                 } catch (e) { inconnuboyLog(`Reconnection failed for ${number}: ${e.message}`, 'error'); }
             } else {
                 inconnuboyLog(`Max restart attempts reached for ${number}.`, 'error');
@@ -181,7 +186,9 @@ function setupAutoRestart(socket, number) {
 }
 
 
-async function inconnuboyPair(number, res = null) {
+// isAutoReconnect = true means this was called by the system (not by user hitting /code)
+// When isAutoReconnect is true, we never request a new pairing code — only restore existing sessions
+async function inconnuboyPair(number, res = null, isAutoReconnect = false) {
     let connectionLockKey;
     const sanitizedNumber = number.replace(/[^0-9]/g, '');
 
@@ -206,6 +213,14 @@ async function inconnuboyPair(number, res = null) {
         // Check MongoDB session
         const existingSession = await getSessionFromMongoDB(sanitizedNumber);
 
+        // FIXED: If auto-reconnect and no session exists, bail out immediately — do NOT request pairing code
+        if (isAutoReconnect && !existingSession) {
+            inconnuboyLog(`Auto-reconnect skipped for ${sanitizedNumber} — no session in MongoDB`, 'info');
+            await removeNumberFromMongoDB(sanitizedNumber);
+            if (connectionLockKey) global[connectionLockKey] = false;
+            return;
+        }
+
         if (!existingSession) {
             inconnuboyLog(`No MongoDB session for ${sanitizedNumber} — new pairing required`, 'info');
             if (fs.existsSync(sessionPath)) {
@@ -213,7 +228,7 @@ async function inconnuboyPair(number, res = null) {
                 inconnuboyLog(`Cleaned leftover local session for ${sanitizedNumber}`, 'info');
             }
         } else {
-            // Session exists - restore from MongoDB
+            // Session exists — restore from MongoDB
             fs.ensureDirSync(sessionPath);
             fs.writeFileSync(path.join(sessionPath, 'creds.json'), JSON.stringify(existingSession, null, 2));
             inconnuboyLog(`🔄 Restored existing session from MongoDB for ${sanitizedNumber}`, 'success');
@@ -278,8 +293,19 @@ async function inconnuboyPair(number, res = null) {
             return trueFileName;
         };
 
-        // Pairing Code
+        // FIXED: Only request pairing code when user explicitly requested it (isAutoReconnect = false)
         if (!conn.authState.creds.registered) {
+            if (isAutoReconnect) {
+                // Should not reach here due to early bail-out above, but safety net
+                inconnuboyLog(`Auto-reconnect: no registered creds for ${sanitizedNumber}, closing socket`, 'warning');
+                try { conn.ws.close(); } catch (_) {}
+                activeSockets.delete(sanitizedNumber);
+                socketCreationTime.delete(sanitizedNumber);
+                await removeNumberFromMongoDB(sanitizedNumber);
+                if (connectionLockKey) global[connectionLockKey] = false;
+                return;
+            }
+
             inconnuboyLog(`🔐 Starting NEW pairing process for ${sanitizedNumber}`, 'info');
             try {
                 await delay(1500);
@@ -339,7 +365,6 @@ async function inconnuboyPair(number, res = null) {
                 if (reason === DisconnectReason.loggedOut) inconnuboyLog(`Session logged out.`, 'error');
             }
         });
-
 
         conn.ev.on('messages.upsert', async (msg) => {
             try {
@@ -475,7 +500,7 @@ async function inconnuboyPair(number, res = null) {
 
 
 router.get('/', (req, res) => res.sendFile(path.join(__dirname, 'pair.html')));
-router.get('/code', async (req, res) => { if (!req.query.number) return res.json({ error: 'Number required' }); await inconnuboyPair(req.query.number, res); });
+router.get('/code', async (req, res) => { if (!req.query.number) return res.json({ error: 'Number required' }); await inconnuboyPair(req.query.number, res, false); });
 router.get('/status', async (req, res) => {
     const { number } = req.query;
     if (!number) {
@@ -507,8 +532,15 @@ router.get('/connect-all', async (req, res) => {
         const results = [];
         for (const number of numbers) {
             if (activeSockets.has(number)) { results.push({ number, status: 'already_connected' }); continue; }
+            // Only reconnect numbers that have a valid saved session
+            const session = await getSessionFromMongoDB(number);
+            if (!session) {
+                results.push({ number, status: 'skipped_no_session' });
+                await removeNumberFromMongoDB(number);
+                continue;
+            }
             const mockRes = { headersSent: false, json: () => {}, status: () => mockRes };
-            await inconnuboyPair(number, mockRes);
+            await inconnuboyPair(number, mockRes, true);
             results.push({ number, status: 'connection_initiated' });
             await delay(1000);
         }
@@ -552,25 +584,40 @@ router.get('/stats', async (req, res) => {
 });
 
 
-
+// FIXED: Auto-reconnect only restores numbers that have a valid session in MongoDB
+// Numbers without a saved session are cleaned up from the active list
 async function autoReconnectFromMongoDB() {
     try {
-        inconnuboyLog('Attempting auto-reconnect from MongoDB...', 'info');
+        inconnuboyLog('Starting auto-reconnect from MongoDB...', 'info');
         const numbers = await getAllNumbersFromMongoDB();
-        if (!numbers.length) { inconnuboyLog('No numbers in MongoDB', 'info'); return; }
+        if (!numbers.length) { inconnuboyLog('No numbers in MongoDB to reconnect', 'info'); return; }
+
+        let reconnected = 0;
+        let skipped = 0;
+
         for (const number of numbers) {
-            if (!activeSockets.has(number)) {
-                const mockRes = { headersSent: false, json: () => {}, status: () => mockRes };
-                await inconnuboyPair(number, mockRes);
-                await delay(2000);
+            if (activeSockets.has(number)) { reconnected++; continue; }
+
+            // Only reconnect if there is a valid saved session
+            const session = await getSessionFromMongoDB(number);
+            if (!session) {
+                inconnuboyLog(`Skipping ${number} — no session credentials found, removing from active list`, 'info');
+                await removeNumberFromMongoDB(number);
+                skipped++;
+                continue;
             }
+
+            const mockRes = { headersSent: false, json: () => {}, status: () => mockRes };
+            await inconnuboyPair(number, mockRes, true);
+            reconnected++;
+            await delay(2000);
         }
-        inconnuboyLog('Auto-reconnect completed', 'success');
+
+        inconnuboyLog(`Auto-reconnect done: ${reconnected} reconnected, ${skipped} skipped (no session)`, 'success');
     } catch (e) { inconnuboyLog(`autoReconnectFromMongoDB error: ${e.message}`, 'error'); }
 }
 
 setTimeout(() => { autoReconnectFromMongoDB(); }, 3000);
-
 
 
 process.on('exit', () => {
