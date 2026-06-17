@@ -3,872 +3,666 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>TEDDY-XMD Pairing</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-
+<title>TEDDY-XMD · WhatsApp Pairing</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family:'Poppins',sans-serif;
-}
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #16161f;
+    --border: rgba(255,255,255,0.07);
+    --border-glow: rgba(99,102,241,0.4);
+    --accent: #6366f1;
+    --accent2: #8b5cf6;
+    --accent3: #06b6d4;
+    --green: #10b981;
+    --red: #ef4444;
+    --text: #f1f5f9;
+    --text2: #94a3b8;
+    --text3: #475569;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
 
-body{
-    background:#000;
-    color:#e6edf3;
-    min-height:100vh;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    overflow:hidden;
-    padding:20px;
-}
+  html { height: 100%; }
 
-/* ================= MATRIX ================= */
+  body {
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    position: relative;
+    overflow-x: hidden;
+  }
 
-#matrix{
-    position:fixed;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    z-index:-1;
-    background:#000;
-}
+  /* ── BACKGROUND EFFECTS ── */
+  .bg-orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.12;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .bg-orb-1 { width: 600px; height: 600px; background: var(--accent); top: -200px; left: -150px; }
+  .bg-orb-2 { width: 500px; height: 500px; background: var(--accent3); bottom: -200px; right: -150px; }
+  .bg-orb-3 { width: 300px; height: 300px; background: var(--accent2); top: 50%; left: 50%; transform: translate(-50%,-50%); opacity: 0.06; }
 
-/* ================= STARTUP ================= */
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 50px 50px;
+    z-index: 0;
+    pointer-events: none;
+  }
 
-#startup-screen{
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,0.92);
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    z-index:9999;
-    backdrop-filter:blur(6px);
-}
+  /* ── WRAPPER ── */
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 440px;
+  }
 
-.loader-circle{
-    width:90px;
-    height:90px;
-    border:4px solid rgba(0,255,200,0.15);
-    border-top:4px solid #00ffc8;
-    border-radius:50%;
-    animation:spin 1s linear infinite;
-    box-shadow:0 0 25px rgba(0,255,200,0.4);
-}
+  /* ── SPLASH SCREEN ── */
+  #splash {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    gap: 20px;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+  }
+  #splash.hidden { opacity: 0; visibility: hidden; }
 
-@keyframes spin{
-    100%{
-        transform:rotate(360deg);
-    }
-}
+  .splash-logo {
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    animation: splash-pulse 1.5s ease-in-out infinite;
+    box-shadow: 0 0 40px rgba(99,102,241,0.4);
+  }
+  @keyframes splash-pulse {
+    0%,100% { transform: scale(1); box-shadow: 0 0 40px rgba(99,102,241,0.4); }
+    50% { transform: scale(1.05); box-shadow: 0 0 60px rgba(99,102,241,0.6); }
+  }
 
-.loading-text{
-    margin-top:25px;
-    font-family:'Orbitron',sans-serif;
-    color:#00ffc8;
-    font-size:18px;
-    letter-spacing:2px;
-    text-shadow:0 0 15px rgba(0,255,200,0.5);
-}
+  .splash-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    background: linear-gradient(90deg, var(--text), var(--text2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
 
-.loading-sub{
-    margin-top:10px;
-    font-size:13px;
-    color:#8b949e;
-}
+  .splash-bar {
+    width: 200px;
+    height: 3px;
+    background: var(--surface2);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .splash-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+    border-radius: 99px;
+    animation: splash-load 2.5s ease forwards;
+  }
+  @keyframes splash-load {
+    0% { width: 0%; }
+    100% { width: 100%; }
+  }
+  .splash-msg {
+    font-size: 13px;
+    color: var(--text3);
+  }
 
-/* ================= CARD ================= */
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03);
+  }
 
-#main-site{
-    width:100%;
-    display:none;
-    justify-content:center;
-    align-items:center;
-}
+  /* ── HEADER ── */
+  .card-header {
+    position: relative;
+    padding: 28px 28px 24px;
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .card-header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3));
+  }
+  .card-header-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+  .logo-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 16px rgba(99,102,241,0.3);
+  }
+  .logo-text h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .logo-text p {
+    font-size: 12px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
 
-@keyframes glowPulse{
+  .status-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid;
+  }
+  .pill-green { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.2); color: var(--green); }
+  .pill-blue { background: rgba(6,182,212,0.1); border-color: rgba(6,182,212,0.2); color: var(--accent3); }
+  .pill-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: blink 2s ease-in-out infinite; }
+  @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
 
-    0%,100%{
-        box-shadow:
-        0 0 20px rgba(0,255,200,0.4),
-        0 0 40px rgba(0,255,200,0.2);
-    }
+  /* ── BODY ── */
+  .card-body { padding: 24px 28px 28px; }
 
-    50%{
-        box-shadow:
-        0 0 35px rgba(0,255,200,0.8),
-        0 0 60px rgba(0,255,200,0.4);
-    }
-}
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+  }
 
-@keyframes borderMove{
+  /* Input group */
+  .input-group { margin-bottom: 16px; }
 
-    0%{
-        background-position:0% 50%;
-    }
+  .input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    overflow: hidden;
+  }
+  .input-wrap:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+  }
+  .input-prefix {
+    padding: 0 14px;
+    font-size: 14px;
+    color: var(--text2);
+    font-weight: 500;
+    border-right: 1px solid var(--border);
+    height: 48px;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.02);
+  }
+  input[type="text"] {
+    flex: 1;
+    height: 48px;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0 14px;
+    font-size: 15px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+  }
+  input::placeholder { color: var(--text3); }
 
-    50%{
-        background-position:100% 50%;
-    }
+  /* Button */
+  .btn {
+    width: 100%;
+    height: 48px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(99,102,241,0.3);
+  }
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(99,102,241,0.45);
+  }
+  .btn-primary:active:not(:disabled) { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
 
-    100%{
-        background-position:0% 50%;
-    }
-}
+  .btn-loading::after {
+    content: '';
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin-left: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-@keyframes blink{
+  /* ── CODE RESULT ── */
+  #result-section {
+    margin-top: 20px;
+    display: none;
+  }
+  .code-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 20px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .code-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(99,102,241,0.04), rgba(139,92,246,0.04));
+    pointer-events: none;
+  }
+  .code-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 12px;
+  }
+  .code-value {
+    font-family: 'Space Grotesk', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 6px;
+    color: var(--text);
+    margin-bottom: 14px;
+    cursor: pointer;
+    transition: color 0.2s;
+    user-select: all;
+  }
+  .code-value:hover { color: var(--accent); }
+  .code-hint {
+    font-size: 12px;
+    color: var(--text3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
 
-    0%,50%{
-        opacity:1;
-    }
+  .copy-btn {
+    margin-top: 12px;
+    width: 100%;
+    height: 38px;
+    border: 1px solid var(--border-glow);
+    border-radius: 8px;
+    background: rgba(99,102,241,0.1);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .copy-btn:hover { background: rgba(99,102,241,0.18); }
 
-    51%,100%{
-        opacity:0;
-    }
-}
+  /* Alert */
+  .alert {
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .alert-error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: #f87171; }
+  .alert-success { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #34d399; }
+  .alert-info { background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2); color: #a5b4fc; }
 
-.card{
-    width:100%;
-    max-width:420px;
-    background:rgba(15,15,20,0.82);
-    backdrop-filter:blur(16px);
-    border:1px solid rgba(0,255,200,0.25);
-    border-radius:18px;
-    overflow:hidden;
-    box-shadow:0 0 30px rgba(0,255,200,0.15);
-}
+  /* ── STEPS ── */
+  .steps {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .step-text {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.5;
+  }
+  .step-text strong { color: var(--text); font-weight: 600; }
 
-.banner-wrap{
-    position:relative;
-    padding:2px;
-    background:linear-gradient(
-        90deg,
-        #00ffc8,
-        #00a8ff,
-        #00ffc8
-    );
+  /* ── FOOTER ── */
+  .card-footer {
+    padding: 16px 28px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .footer-brand {
+    font-size: 12px;
+    color: var(--text3);
+    font-weight: 500;
+  }
+  .footer-brand span { color: var(--accent); }
+  .footer-count {
+    font-size: 12px;
+    color: var(--text3);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .footer-count b { color: var(--text2); }
 
-    background-size:200% 200%;
+  /* ── DIVIDER ── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+  }
 
-    animation:borderMove 3s linear infinite;
-
-    border-radius:18px 18px 0 0;
-}
-
-.banner{
-    width:100%;
-    height:180px;
-    background:url('https://files.catbox.moe/13nyhx.jpg')
-    center/cover no-repeat;
-
-    border-radius:16px 16px 0 0;
-
-    animation:glowPulse 2.5s ease-in-out infinite;
-
-    position:relative;
-}
-
-.banner::after{
-    content:'';
-    position:absolute;
-    inset:0;
-
-    background:
-    linear-gradient(
-        to bottom,
-        transparent 60%,
-        rgba(0,0,0,0.8)
-    );
-
-    border-radius:16px 16px 0 0;
-}
-
-/* ================= STATUS ================= */
-
-.status-bar{
-    display:flex;
-    justify-content:space-between;
-    padding:10px 16px;
-    background:rgba(0,0,0,0.7);
-    font-family:'Orbitron',monospace;
-    font-size:12px;
-    color:#00ffc8;
-    border-bottom:1px solid rgba(0,255,200,0.2);
-}
-
-/* ================= BOOT ================= */
-
-.boot-screen{
-    padding:16px;
-    background:rgba(0,0,0,0.8);
-    font-family:'Orbitron',monospace;
-    font-size:11px;
-    color:#00ffc8;
-    height:120px;
-    overflow:hidden;
-    border-bottom:1px solid rgba(0,255,200,0.2);
-}
-
-.boot-line{
-    margin-bottom:4px;
-    opacity:0;
-    animation:fadeIn 0.3s forwards;
-}
-
-@keyframes fadeIn{
-    to{
-        opacity:1;
-    }
-}
-
-.cursor{
-    display:inline-block;
-    width:8px;
-    height:12px;
-    background:#00ffc8;
-    animation:blink 1s infinite;
-}
-
-/* ================= CONTENT ================= */
-
-.content{
-    padding:20px 24px 24px;
-}
-
-.title{
-    text-align:center;
-    margin-bottom:16px;
-}
-
-.title h1{
-    font-family:'Orbitron',sans-serif;
-    font-size:24px;
-    font-weight:900;
-    color:#00ffc8;
-    text-shadow:0 0 15px rgba(0,255,200,0.6);
-}
-
-.title p{
-    font-size:13px;
-    color:#8b949e;
-    margin-top:4px;
-}
-
-.counter{
-    text-align:center;
-    font-size:13px;
-    color:#8b949e;
-    margin-bottom:16px;
-}
-
-.counter span{
-    color:#00ffc8;
-    font-weight:700;
-}
-
-.label{
-    font-size:12px;
-    font-weight:600;
-    color:#00ffc8;
-    margin-bottom:8px;
-    text-transform:uppercase;
-    letter-spacing:0.5px;
-}
-
-input{
-    width:100%;
-    padding:14px 16px;
-    background:rgba(0,0,0,0.6);
-    border:1px solid rgba(0,255,200,0.3);
-    border-radius:10px;
-    color:#e6edf3;
-    font-size:15px;
-    outline:none;
-    transition:0.3s;
-}
-
-input:focus{
-    border-color:#00ffc8;
-    box-shadow:0 0 12px rgba(0,255,200,0.4);
-}
-
-button{
-    width:100%;
-    padding:14px;
-    margin-top:12px;
-    border:none;
-    border-radius:10px;
-    background:
-    linear-gradient(
-        90deg,
-        #00ffc8,
-        #00a8ff
-    );
-
-    color:#000;
-    font-weight:700;
-    font-size:15px;
-    cursor:pointer;
-    transition:0.3s;
-}
-
-button:hover:not(:disabled){
-
-    transform:translateY(-2px);
-
-    box-shadow:
-    0 6px 20px rgba(0,255,200,0.4);
-}
-
-button:disabled{
-    opacity:0.6;
-    cursor:not-allowed;
-}
-
-.code-box{
-    background:rgba(0,0,0,0.6);
-    border:1px dashed #00ffc8;
-    border-radius:10px;
-    padding:16px;
-    text-align:center;
-    font-family:'Orbitron',sans-serif;
-    font-size:22px;
-    font-weight:700;
-    letter-spacing:3px;
-    color:#00ffc8;
-    text-shadow:0 0 10px rgba(0,255,200,0.5);
-    display:none;
-    cursor:pointer;
-}
-
-.loader{
-    display:none;
-    text-align:center;
-    color:#00ffc8;
-    margin-top:10px;
-    font-family:'Orbitron',monospace;
-    font-size:12px;
-}
-
-.footer{
-    text-align:center;
-    margin-top:20px;
-    font-size:12px;
-    color:#8b949e;
-}
-
+  /* Responsive */
+  @media (max-width: 480px) {
+    .card-body { padding: 20px 18px 22px; }
+    .card-header { padding: 22px 18px 20px; }
+    .card-footer { padding: 14px 18px; }
+    .code-value { font-size: 22px; letter-spacing: 4px; }
+  }
 </style>
 </head>
-
 <body>
 
-<!-- ================= MATRIX ================= -->
+<div class="bg-orb bg-orb-1"></div>
+<div class="bg-orb bg-orb-2"></div>
+<div class="bg-orb bg-orb-3"></div>
+<div class="grid-bg"></div>
 
-<canvas id="matrix"></canvas>
-
-<!-- ================= STARTUP ================= -->
-
-<div id="startup-screen">
-
-    <div class="loader-circle"></div>
-
-    <div class="loading-text">
-        TEDDY-XMD
-    </div>
-
-    <div class="loading-sub" id="loading-msg">
-        Initializing secure system...
-    </div>
-
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-logo">🤖</div>
+  <div class="splash-title">TEDDY-XMD</div>
+  <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+  <div class="splash-msg" id="splash-msg">Initializing system...</div>
 </div>
 
-<!-- ================= MAIN ================= -->
+<!-- MAIN -->
+<div class="wrapper" id="main" style="display:none;">
+  <div class="card">
 
-<div id="main-site">
-
-<div class="card">
-
-    <div class="banner-wrap">
-        <div class="banner"></div>
+    <!-- Header -->
+    <div class="card-header">
+      <div class="card-header-top">
+        <div class="logo-icon">🤖</div>
+        <div class="logo-text">
+          <h1>TEDDY-XMD</h1>
+          <p>WhatsApp Bot · Pairing Portal</p>
+        </div>
+      </div>
+      <div class="status-pills">
+        <span class="pill pill-green"><span class="pill-dot"></span>Server Online</span>
+        <span class="pill pill-blue">🔒 Secure Connection</span>
+      </div>
     </div>
 
-    <div class="status-bar">
-        <span id="time">00:00:00</span>
-        <span id="battery">Battery: --%</span>
-    </div>
+    <!-- Body -->
+    <div class="card-body">
+      <div class="section-label">Enter your WhatsApp number</div>
 
-    <div class="boot-screen" id="boot-screen"></div>
-
-    <div class="content" id="main-content" style="display:none;">
-
-        <div class="title">
-            <h1>TEDDY-XMD</h1>
-            <p>Pair your WhatsApp number to get session</p>
-        </div>
-
-        <div class="counter">
-            Bots Connected:
-            <span id="count-num">0</span>
-            / 1000
-        </div>
-
-        <div class="label">
-            WhatsApp Number
-        </div>
-
-        <input
+      <div class="input-group">
+        <div class="input-wrap">
+          <div class="input-prefix">📱</div>
+          <input
             type="text"
             id="number"
-            placeholder="2547×××××××××"
+            placeholder="2547XXXXXXXX (with country code)"
             autocomplete="off"
-        >
+            inputmode="numeric"
+          >
+        </div>
+      </div>
 
-        <button id="pairBtn" onclick="getCode()">
-            Get Pairing Code
-        </button>
+      <button class="btn btn-primary" id="pairBtn" onclick="getCode()">
+        <span id="btn-label">⚡ Get Pairing Code</span>
+      </button>
 
-        <div class="loader" id="loader">
-            [SYSTEM] Generating secure code...
+      <!-- Alert area -->
+      <div id="alert-area"></div>
+
+      <!-- Code result -->
+      <div id="result-section">
+        <div class="divider"></div>
+        <div class="section-label">Your pairing code</div>
+        <div class="code-card">
+          <div class="code-label">Tap to copy</div>
+          <div class="code-value" id="code-display" onclick="copyCode()">——————</div>
+          <div class="code-hint">📋 Click the code to copy it</div>
+          <button class="copy-btn" onclick="copyCode()">📋 Copy Code</button>
         </div>
 
-        <div class="label" style="margin-top:20px;">
-            Your Code
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-text">Open WhatsApp → tap <strong>⋮ Menu</strong> → <strong>Linked Devices</strong></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-text">Tap <strong>Link a Device</strong> → choose <strong>Link with phone number</strong></div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-text">Enter the code above. The bot will connect automatically ✅</div>
+          </div>
         </div>
-
-        <div
-            class="code-box"
-            id="code-box"
-            onclick="copyCode()"
-        ></div>
-
-        <div
-            id="result"
-            style="
-            text-align:center;
-            font-size:14px;
-            min-height:20px;
-            margin-top:12px;
-            "
-        ></div>
-
-        <div class="footer">
-            TEDDY-XMD • Simple. Fast. Reliable.
-        </div>
-
+      </div>
     </div>
 
-</div>
+    <!-- Footer -->
+    <div class="card-footer">
+      <div class="footer-brand">Powered by <span>TEDDY-XMD</span></div>
+      <div class="footer-count">🤖 Bots: <b id="bot-count">0</b></div>
+    </div>
 
+  </div>
 </div>
 
 <script>
-
-/* ================= MATRIX ================= */
-
-const canvas =
-document.getElementById('matrix');
-
-const ctx =
-canvas.getContext('2d');
-
-canvas.width =
-window.innerWidth;
-
-canvas.height =
-window.innerHeight;
-
-const letters =
-'01アイウエオカキクケコサシスセソABCDEFGHIJKLMNOPQRSTUVWXYZ';
-
-const chars =
-letters.split('');
-
-const fontSize = 14;
-
-const columns =
-canvas.width / fontSize;
-
-const drops = [];
-
-for(let i = 0; i < columns; i++){
-    drops[i] = 1;
-}
-
-function drawMatrix(){
-
-    ctx.fillStyle =
-    'rgba(0,0,0,0.06)';
-
-    ctx.fillRect(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
-
-    ctx.fillStyle = '#00ff88';
-
-    ctx.font =
-    fontSize + 'px monospace';
-
-    for(let i = 0; i < drops.length; i++){
-
-        const text =
-        chars[
-            Math.floor(
-                Math.random() * chars.length
-            )
-        ];
-
-        ctx.fillText(
-            text,
-            i * fontSize,
-            drops[i] * fontSize
-        );
-
-        if(
-            drops[i] * fontSize > canvas.height
-            &&
-            Math.random() > 0.975
-        ){
-            drops[i] = 0;
-        }
-
-        drops[i]++;
-    }
-}
-
-setInterval(drawMatrix,35);
-
-window.addEventListener('resize', () => {
-
-    canvas.width =
-    window.innerWidth;
-
-    canvas.height =
-    window.innerHeight;
-
-});
-
-/* ================= BOT COUNT ================= */
-
-let currentBots =
-parseInt(
-    localStorage.getItem(
-        'teddy_xmd_bot_count'
-    )
-) || 0;
-
-document.getElementById('count-num')
-.innerText = currentBots;
-
-let currentCode = '';
-
-/* ================= STARTUP ================= */
-
-const loadingTexts = [
-
-    'Initializing secure system...',
-    'Connecting to TEDDY-XMD core...',
-    'Loading encrypted modules...',
-    'Checking server integrity...',
-    'Preparing WhatsApp engine...',
-    'Starting secure environment...',
-    'Finalizing startup...'
-
-];
-
-let loadingIndex = 0;
-
-const loadingMsg =
-document.getElementById('loading-msg');
-
-const randomDelay =
-Math.floor(Math.random() * 7000) + 3000;
-
-const loadingInterval =
-setInterval(() => {
-
-    loadingMsg.innerText =
-    loadingTexts[
-        loadingIndex % loadingTexts.length
-    ];
-
-    loadingIndex++;
-
-},900);
-
-setTimeout(() => {
-
-    clearInterval(loadingInterval);
-
-    document.getElementById('startup-screen')
-    .style.display = 'none';
-
-    document.getElementById('main-site')
-    .style.display = 'flex';
-
-    startBoot();
-
-}, randomDelay);
-
-/* ================= CLOCK ================= */
-
-function updateTime(){
-
-    const now = new Date();
-
-    const time =
-    now.toLocaleTimeString(
-        'en-US',
-        {
-            hour12:false
-        }
-    );
-
-    document.getElementById('time')
-    .textContent = time;
-}
-
-setInterval(updateTime,1000);
-
-updateTime();
-
-/* ================= BATTERY ================= */
-
-if('getBattery' in navigator){
-
-    navigator.getBattery()
-    .then(battery => {
-
-        function updateBattery(){
-
-            const level =
-            Math.round(
-                battery.level * 100
-            );
-
-            document.getElementById('battery')
-            .textContent =
-            `Battery: ${level}%`;
-        }
-
-        updateBattery();
-
-        battery.addEventListener(
-            'levelchange',
-            updateBattery
-        );
-    });
-
-}else{
-
-    document.getElementById('battery')
-    .textContent = 'Battery: N/A';
-}
-
-/* ================= BOOT ================= */
-
-function startBoot(){
-
-    const bootLines = [
-
-        '[BOOT] Initializing TEDDY-XMD core...',
-        '[OK] Loading modules...',
-        '[OK] Connecting to WhatsApp servers...',
-        '[SCAN] Checking system integrity...',
-        '[OK] Firewall bypass active',
-        '[OK] Encryption protocols loaded',
-        '[READY] System online. Awaiting input.'
-
-    ];
-
-    const bootScreen =
-    document.getElementById('boot-screen');
-
-    const mainContent =
-    document.getElementById('main-content');
-
-    let lineIndex = 0;
-
-    function showBootLine(){
-
-        if(lineIndex < bootLines.length){
-
-            const div =
-            document.createElement('div');
-
-            div.className = 'boot-line';
-
-            div.style.animationDelay =
-            `${lineIndex * 0.4}s`;
-
-            div.textContent =
-            bootLines[lineIndex];
-
-            bootScreen.appendChild(div);
-
-            lineIndex++;
-
-            setTimeout(showBootLine,600);
-
-        }else{
-
-            setTimeout(() => {
-
-                bootScreen.innerHTML =
-                '[SYSTEM READY]<span class="cursor"></span>';
-
-                setTimeout(() => {
-
-                    bootScreen.style.display =
-                    'none';
-
-                    mainContent.style.display =
-                    'block';
-
-                },1500);
-
-            },1000);
-        }
+  // ── SPLASH ──
+  const splashMsgs = [
+    'Initializing system...',
+    'Loading bot modules...',
+    'Establishing secure tunnel...',
+    'Connecting to servers...',
+    'Ready!'
+  ];
+  let splashIdx = 0;
+  const splashMsgEl = document.getElementById('splash-msg');
+  const splashInterval = setInterval(() => {
+    splashIdx++;
+    if (splashIdx < splashMsgs.length) splashMsgEl.textContent = splashMsgs[splashIdx];
+    else clearInterval(splashInterval);
+  }, 500);
+
+  setTimeout(() => {
+    document.getElementById('splash').classList.add('hidden');
+    document.getElementById('main').style.display = 'block';
+  }, Math.random() * 1500 + 1500);
+
+  // ── BOT COUNT ──
+  const botCount = parseInt(localStorage.getItem('teddy_bot_count') || '0');
+  document.getElementById('bot-count').textContent = botCount;
+
+  // ── STATE ──
+  let currentCode = '';
+
+  // ── ALERT ──
+  function showAlert(msg, type = 'info') {
+    const icons = { error: '❌', success: '✅', info: 'ℹ️' };
+    const area = document.getElementById('alert-area');
+    area.innerHTML = `<div class="alert alert-${type}">${icons[type]} ${msg}</div>`;
+  }
+  function clearAlert() {
+    document.getElementById('alert-area').innerHTML = '';
+  }
+
+  // ── GET CODE ──
+  async function getCode() {
+    const rawNumber = document.getElementById('number').value.trim().replace(/[^0-9]/g, '');
+    if (!rawNumber || rawNumber.length < 10) {
+      return showAlert('Please enter a valid number with country code (e.g. 2547XXXXXXXX)', 'error');
     }
 
-    showBootLine();
-}
-
-/* ================= PAIRING ================= */
-
-async function getCode(){
-
-    const number =
-    document.getElementById('number')
-    .value
-    .trim()
-    .replace(/[^0-9]/g,'');
-
-    const loader =
-    document.getElementById('loader');
-
-    const codeBox =
-    document.getElementById('code-box');
-
-    const btn =
-    document.getElementById('pairBtn');
-
-    const result =
-    document.getElementById('result');
-
-    if(!number || number.length < 10){
-
-        result.innerText =
-        '[ERROR] Invalid number format';
-
-        return;
-    }
-
+    const btn = document.getElementById('pairBtn');
+    const label = document.getElementById('btn-label');
     btn.disabled = true;
+    btn.classList.add('btn-loading');
+    label.textContent = 'Generating code...';
+    clearAlert();
+    document.getElementById('result-section').style.display = 'none';
 
-    loader.style.display = 'block';
+    try {
+      const res = await fetch(`/code?number=${rawNumber}`);
+      const data = await res.json();
 
-    codeBox.style.display = 'none';
+      if (data.code) {
+        currentCode = data.code;
+        document.getElementById('code-display').textContent = data.code;
+        document.getElementById('result-section').style.display = 'block';
+        showAlert('Code generated! Enter it in WhatsApp → Linked Devices.', 'success');
 
-    result.innerText = '';
+        const newCount = botCount + 1;
+        localStorage.setItem('teddy_bot_count', newCount);
+        document.getElementById('bot-count').textContent = newCount;
 
-    try{
-
-        const res =
-        await fetch(`/code?number=${number}`);
-
-        const data =
-        await res.json();
-
-        if(data.code){
-
-            currentCode = data.code;
-
-            codeBox.innerText =
-            data.code;
-
-            codeBox.style.display =
-            'block';
-
-            result.innerText =
-            '[SUCCESS] Tap code to copy';
-
-            currentBots++;
-
-            localStorage.setItem(
-                'teddy_xmd_bot_count',
-                currentBots
-            );
-
-            document.getElementById('count-num')
-            .innerText = currentBots;
-
-        }else{
-
-            result.innerText =
-            '[ERROR] ' +
-            (data.error || 'Failed');
-        }
-
-    }catch(e){
-
-        result.innerText =
-        '[ERROR] Server unreachable';
-
-    }finally{
-
-        loader.style.display =
-        'none';
-
-        btn.disabled = false;
+      } else if (data.status === 'already_connected') {
+        showAlert('This number is already connected to the bot.', 'info');
+      } else if (data.status === 'reconnecting') {
+        showAlert('Reconnecting with your existing session...', 'info');
+      } else {
+        showAlert(data.error || data.message || 'Failed to generate code. Try again.', 'error');
+      }
+    } catch (e) {
+      showAlert('Server unreachable. Please try again in a moment.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('btn-loading');
+      label.textContent = '⚡ Get Pairing Code';
     }
-}
+  }
 
-/* ================= COPY ================= */
+  // ── COPY ──
+  function copyCode() {
+    if (!currentCode) return;
+    navigator.clipboard.writeText(currentCode).then(() => {
+      showAlert('Code copied to clipboard! Paste it in WhatsApp now.', 'success');
+      setTimeout(clearAlert, 3000);
+    }).catch(() => {
+      showAlert('Could not copy automatically — please select and copy the code manually.', 'info');
+    });
+  }
 
-function copyCode(){
-
-    if(!currentCode) return;
-
-    navigator.clipboard.writeText(
-        currentCode
-    );
-
-    document.getElementById('result')
-    .innerText =
-    '[COPIED] Code saved to clipboard';
-
-    setTimeout(() => {
-
-        document.getElementById('result')
-        .innerText =
-        '[READY] Tap code to copy';
-
-    },2000);
-}
-
-/* ================= ENTER ================= */
-
-document.getElementById('number')
-.addEventListener('keypress',(e) => {
-
-    if(e.key === 'Enter'){
-        getCode();
-    }
-
-});
-
+  // ── ENTER KEY ──
+  document.getElementById('number').addEventListener('keydown', e => {
+    if (e.key === 'Enter') getCode();
+  });
 </script>
-
 </body>
 </html>
